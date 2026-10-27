@@ -1,51 +1,59 @@
 # Navalha & Co. – Sistema de agendamento online
 
-Site de agendamento para uma barbearia fictícia. O cliente escolhe o serviço, o barbeiro, o dia e o horário em poucos cliques, e o responsável acompanha tudo em um painel.
+Site de agendamento para uma barbearia fictícia, com front-end, API própria e banco de dados MySQL. O cliente escolhe serviço, barbeiro, dia e horário, e o barbeiro acompanha tudo em um painel protegido por login.
 
 🔗 **Demonstração:** https://abbyyssss.github.io/barbearia-agendamento/
 
-> Projeto de portfólio. A barbearia, os nomes e os dados são fictícios.
+> Projeto de portfólio. A barbearia e os dados são fictícios.
+> A API roda em um plano gratuito de hospedagem: se ninguém usou o site por um tempo, a primeira abertura pode levar alguns segundos a mais.
 
-<!-- Depois de publicar, adicione prints em docs/ e descomente as linhas abaixo:
+<!-- Depois de publicar, adicione prints em docs/ e descomente:
 ![Tela de agendamento](docs/agendar.png)
 ![Painel do barbeiro](docs/painel.png)
 -->
 
-## 🎯 Objetivo
+## 🏗️ Arquitetura
 
-Praticar a construção de uma aplicação web completa, do desenho da interface às regras de negócio, com foco em uma experiência simples para quem agenda e clara para quem atende.
+```
+Navegador → Site (GitHub Pages) → API (FastAPI) → Banco MySQL
+```
+
+- **Este repositório:** o site (HTML, CSS e JavaScript).
+- **[barbearia-api](https://github.com/abbyyssss/barbearia-api):** a API em Python e o banco de dados.
 
 ## ✨ Funcionalidades
 
 **Para o cliente**
 - Agendamento em 4 etapas: serviço, barbeiro, data e horário, dados pessoais
-- Horários calculados pela duração de cada serviço
-- Horários ocupados ou já passados ficam indisponíveis
-- Validação de nome e celular, com máscara de telefone
-- Resumo do pedido com valor total antes de confirmar
+- Só aparecem horários livres, calculados pela duração de cada serviço
+- Validação de nome, celular (com máscara) e datas
+- Resumo com valor total antes de confirmar
 
 **Para o barbeiro (aba Painel)**
+- Login com e-mail e senha
 - Agendamentos de hoje, próximos horários e previsão de faturamento
-- Lista em ordem cronológica
-- Cancelamento com segunda confirmação, que libera o horário novamente
+- Cancelamento com segunda confirmação, que libera o horário
 
 **Geral**
-- Layout responsivo (celular e computador)
-- Tema claro e escuro automático, conforme o sistema do usuário
+- Layout responsivo e tema claro/escuro automático
+- Mensagens de erro claras quando a API não responde
 
 ## 🧠 Decisões técnicas
 
-- **Sem sobreposição de horários:** dois agendamentos do mesmo barbeiro no mesmo dia só coexistem se um terminar antes de o outro começar. A regra considera a duração de cada serviço, não só o horário de início.
-- **Revalidação ao confirmar:** antes de salvar, o sistema confere de novo se o horário continua livre.
-- **Expediente por dia da semana:** sábado fecha mais cedo e domingo não abre.
-- **Proteção contra HTML injetado:** os textos digitados pelo usuário são escapados antes de aparecer na tela.
-- **Código separado por responsabilidade:** estrutura (HTML), visual (CSS) e lógica (JS) em arquivos próprios, e o JavaScript dividido em seções.
+- **Regras no servidor:** datas passadas, domingos, expediente e conflitos de horário são validados na API, não só no navegador.
+- **Sem horários duplicados:** a criação do agendamento usa transação com bloqueio por barbeiro, para que dois pedidos simultâneos não ocupem o mesmo horário.
+- **Painel protegido:** login com token JWT, e senhas guardadas com hash (bcrypt).
+- **Segredos fora do código:** senha do banco e chave do token ficam em variáveis de ambiente.
+- **Código organizado:** HTML, CSS e JavaScript separados, e o JavaScript dividido em seções por responsabilidade.
 
 ## 🛠️ Tecnologias
 
-- HTML5, CSS3 e JavaScript puro (sem frameworks)
-- `localStorage` para guardar os agendamentos no navegador
-- GitHub Pages para hospedagem
+| Camada | Tecnologias |
+|---|---|
+| Site | HTML5, CSS3, JavaScript puro |
+| API | Python, FastAPI, SQLAlchemy |
+| Banco de dados | MySQL |
+| Hospedagem | GitHub Pages (site) |
 
 ## 📁 Estrutura
 
@@ -53,25 +61,25 @@ Praticar a construção de uma aplicação web completa, do desenho da interface
 barbearia-agendamento/
 ├── index.html   # estrutura da página
 ├── style.css    # visual, responsividade e tema escuro
-├── script.js    # regras de horários, validação e painel
+├── script.js    # comunicação com a API, horários e painel
 └── README.md
 ```
 
-## ▶️ Como rodar
+## ▶️ Como rodar localmente
 
-1. Clone o repositório:
+1. Suba a API seguindo o README do [barbearia-api](https://github.com/abbyyssss/barbearia-api).
+2. Clone este repositório:
    ```bash
    git clone https://github.com/abbyyssss/barbearia-agendamento.git
    ```
-2. Abra o arquivo `index.html` no navegador.
-
-Não precisa instalar nada.
+3. Abra a pasta no VS Code e use a extensão **Live Server** no `index.html`. O site abre em `http://127.0.0.1:5500` e usa a API local automaticamente.
 
 ## 🗺️ Próximos passos
 
 - [x] Separar o código em `index.html`, `style.css` e `script.js`
-- [ ] Criar uma API (login e agendamentos) com banco de dados MySQL
-- [ ] Autenticação para o painel do barbeiro
+- [x] Criar a API com banco de dados MySQL
+- [x] Login para o painel do barbeiro
+- [ ] Publicar a API e o banco na nuvem
 - [ ] Envio de lembrete ao cliente
 
 ## 👤 Autor
