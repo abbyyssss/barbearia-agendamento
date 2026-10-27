@@ -1,57 +1,45 @@
 /* ==========================================================================
-   Navalha & Co. – Sistema de agendamento
+   Navalha & Co. – Sistema de agendamento (versão com API)
 
    Organização do arquivo:
-   1. Dados fixos (serviços e barbeiros)
+   1. Configuração
    2. Estado da tela
    3. Funções utilitárias
-   4. Armazenamento (localStorage)
-   5. Regras de horários
-   6. Renderização da tela
-   7. Ações do usuário
-   8. Eventos e inicialização
+   4. Comunicação com a API
+   5. Renderização da tela
+   6. Ações do usuário
+   7. Eventos e inicialização
    ========================================================================== */
 
 
-/* ---------- 1. Dados fixos ---------- */
+/* ---------- 1. Configuração ---------- */
 
-const SERVICES = [
-  { id: 'corte', nome: 'Corte clássico',          min: 45, preco: 55, desc: 'Tesoura e máquina, com finalização em pomada.' },
-  { id: 'barba', nome: 'Barba com toalha quente', min: 30, preco: 40, desc: 'Navalha, toalha quente e hidratação.' },
-  { id: 'combo', nome: 'Corte e barba',           min: 75, preco: 85, desc: 'O serviço completo, com desconto.' },
-  { id: 'acab',  nome: 'Acabamento e sobrancelha', min: 30, preco: 25, desc: 'Contorno e detalhes para manter o corte.' }
-];
+// Endereço da API: local quando o site roda no seu computador, publicada quando está no ar
+const API_URL = ['localhost', '127.0.0.1'].includes(location.hostname)
+  ? 'http://127.0.0.1:8000'
+  : 'https://SUA-API.onrender.com'; // troque pelo endereço da API publicada
 
-const BARBERS = [
-  { id: 'Rafael', tag: 'Cortes clássicos' },
-  { id: 'Diego',  tag: 'Barba e navalha' },
-  { id: 'Marcos', tag: 'Degradê e estilo' }
-];
-
-// Funcionamento (em minutos desde 00:00)
-const OPEN_TIME = 9 * 60;
-const CLOSE_WEEKDAY = 19 * 60;
-const CLOSE_SATURDAY = 16 * 60;
-const SLOT_STEP = 30;
 const MAX_DAYS_AHEAD = 30; // até quantos dias à frente dá para agendar
-
-const STORAGE_KEY = 'navalha-agenda-v1';
-const SEED_KEY = 'navalha-agenda-seed';
+const TOKEN_KEY = 'navalha-token';
 
 
 /* ---------- 2. Estado da tela ---------- */
 
-// Guarda o que o cliente já escolheu no formulário
 const state = {
-  service: null,   // id do serviço
-  barber: null,    // id do barbeiro
-  date: '',        // 'AAAA-MM-DD'
-  time: null,      // minutos desde 00:00
-  confirmed: null  // agendamento recém-confirmado
+  service: null,       // id do serviço escolhido
+  barber: null,        // id do barbeiro escolhido
+  date: '',            // 'AAAA-MM-DD'
+  time: null,          // 'HH:MM'
+  slots: null,         // null | 'loading' | 'closed' | 'error' | lista de 'HH:MM'
+  slotsError: '',      // mensagem quando os horários não carregam
+  confirmed: null,     // agendamento recém-confirmado
+  catalogError: ''     // mensagem quando serviços/barbeiros não carregam
 };
 
-// Plano B caso o navegador bloqueie o localStorage
-let memoryStore = [];
+let services = [];     // vêm da API
+let barbers = [];      // vêm da API
+let memoryToken = null; // plano B se o navegador bloquear o sessionStorage
+let slotRequest = 0;    // identifica a busca de horários mais recente
 
 
 /* ---------- 3. Funções utilitárias ---------- */
@@ -60,43 +48,19 @@ const $ = (selector) => document.querySelector(selector);
 
 const pad = (n) => String(n).padStart(2, '0');
 
-// Protege o HTML contra caracteres especiais digitados pelo usuário
+// Protege o HTML contra caracteres especiais vindos de campos digitados
 function escapeHTML(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   return String(text).replace(/[&<>"']/g, (char) => map[char]);
 }
 
-function randomId() {
-  return Math.random().toString(36).slice(2);
-}
-
 function getService(id) {
-  return SERVICES.find((service) => service.id === id);
+  return services.find((service) => service.id === id);
 }
 
 // Date -> 'AAAA-MM-DD'
 function toISODate(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-// Primeiro e último dia em que o cliente pode agendar ('AAAA-MM-DD')
-function getBookingRange() {
-  const first = new Date();
-  const last = new Date();
-  last.setDate(first.getDate() + MAX_DAYS_AHEAD);
-  return { min: toISODate(first), max: toISODate(last) };
-}
-
-// O campo de data só bloqueia valores no calendário; quem digita à mão passa.
-// Por isso a regra também é conferida aqui, no JavaScript.
-function isDateAllowed(isoDate) {
-  const { min, max } = getBookingRange();
-  return isoDate >= min && isoDate <= max;
-}
-
-// 570 -> '09:30'
-function formatTime(minutes) {
-  return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
 
 function formatBRL(value) {
@@ -110,6 +74,21 @@ function formatDateLong(isoDate) {
     day: 'numeric',
     month: 'long'
   });
+}
+
+// Primeiro e último dia em que o cliente pode agendar ('AAAA-MM-DD')
+function getBookingRange() {
+  const first = new Date();
+  const last = new Date();
+  last.setDate(first.getDate() + MAX_DAYS_AHEAD);
+  return { min: toISODate(first), max: toISODate(last) };
+}
+
+// O campo de data só bloqueia valores no calendário; quem digita à mão passa.
+// Por isso a regra também é conferida aqui (e de novo na API).
+function isDateAllowed(isoDate) {
+  const { min, max } = getBookingRange();
+  return isoDate >= min && isoDate <= max;
 }
 
 // Aplica a máscara (11) 91234-5678 enquanto a pessoa digita
@@ -131,151 +110,167 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add('on');
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('on'), 2600);
+  showToast.timer = setTimeout(() => toast.classList.remove('on'), 3200);
 }
 
-
-/* ---------- 4. Armazenamento (localStorage) ---------- */
-
-function loadAppointments() {
+// Token de login do painel (fica só enquanto a aba estiver aberta)
+function getToken() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : memoryStore;
+    return sessionStorage.getItem(TOKEN_KEY) || memoryToken;
   } catch (error) {
-    return memoryStore;
+    return memoryToken;
   }
 }
 
-function saveAppointments(list) {
-  memoryStore = list;
+function setToken(value) {
+  memoryToken = value;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch (error) {
-    // Sem localStorage: os dados ficam só em memória até recarregar a página
-  }
-}
-
-// Cria 3 agendamentos de exemplo na primeira visita, para o painel não ficar vazio
-function seedExamples() {
-  let alreadySeeded = false;
-  try {
-    alreadySeeded = localStorage.getItem(SEED_KEY);
-  } catch (error) {}
-
-  if (alreadySeeded || loadAppointments().length) return;
-
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-
-  const make = (date, start, serviceId, barber, cliente, tel) => ({
-    id: randomId(),
-    svc: serviceId,
-    pro: barber,
-    date: toISODate(date),
-    start,
-    min: getService(serviceId).min,
-    preco: getService(serviceId).preco,
-    cliente,
-    tel
-  });
-
-  saveAppointments([
-    make(today,    15 * 60,      'corte', 'Rafael', 'Bruno Alves',    '(11) 98877-1020'),
-    make(tomorrow, 10 * 60,      'combo', 'Diego',  'Lucas Pereira',  '(11) 97766-3041'),
-    make(tomorrow, 14 * 60 + 30, 'barba', 'Marcos', 'André Souza',    '(11) 95544-2288')
-  ]);
-
-  try {
-    localStorage.setItem(SEED_KEY, '1');
+    if (value) sessionStorage.setItem(TOKEN_KEY, value);
+    else sessionStorage.removeItem(TOKEN_KEY);
   } catch (error) {}
 }
 
 
-/* ---------- 5. Regras de horários ---------- */
+/* ---------- 4. Comunicação com a API ---------- */
 
-/*
-  Devolve a lista de horários do dia escolhido, cada um com { t, off }:
-  - t:   início em minutos desde 00:00
-  - off: true quando o horário não pode ser escolhido
-  Devolve null se faltar escolha, ou 'closed' se a barbearia estiver fechada.
-*/
-function getSlots() {
-  if (!state.service || !state.barber || !state.date) return null;
-  if (!isDateAllowed(state.date)) return null;
-
-  const day = new Date(`${state.date}T00:00:00`);
-  const weekday = day.getDay();
-  if (weekday === 0) return 'closed'; // domingo
-
-  const service = getService(state.service);
-  const now = new Date();
-  const isToday = state.date === toISODate(now);
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const closeTime = weekday === 6 ? CLOSE_SATURDAY : CLOSE_WEEKDAY;
-
-  // Agendamentos que já existem para o mesmo barbeiro no mesmo dia
-  const taken = loadAppointments().filter(
-    (item) => item.date === state.date && item.pro === state.barber
-  );
-
-  const slots = [];
-  for (let start = OPEN_TIME; start + service.min <= closeTime; start += SLOT_STEP) {
-    // Dois intervalos se sobrepõem quando cada um começa antes do outro terminar
-    const overlaps = taken.some(
-      (item) => start < item.start + item.min && item.start < start + service.min
-    );
-    const inThePast = isToday && start <= nowMinutes;
-    slots.push({ t: start, off: overlaps || inThePast });
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
   }
-  return slots;
+}
+
+// A API devolve { detail: "texto" } nos erros comuns e uma lista nos erros de validação
+function extractMessage(data) {
+  if (!data || !data.detail) return '';
+  if (typeof data.detail === 'string') return data.detail;
+  return 'Confira os dados informados e tente de novo.';
+}
+
+async function api(path, { method = 'GET', body, auth = false } = {}) {
+  const headers = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (auth) headers.Authorization = `Bearer ${getToken()}`;
+
+  let response;
+  try {
+    response = await fetch(API_URL + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (error) {
+    throw new ApiError('Não foi possível conectar ao servidor. Tente novamente em instantes.', 0);
+  }
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (error) {}
+
+  if (!response.ok) {
+    throw new ApiError(extractMessage(data) || 'Algo deu errado. Tente novamente.', response.status);
+  }
+  return data;
+}
+
+async function loadCatalog() {
+  try {
+    [services, barbers] = await Promise.all([api('/servicos'), api('/barbeiros')]);
+    state.catalogError = '';
+  } catch (error) {
+    state.catalogError = error.message;
+  }
+}
+
+// Busca na API os horários livres do barbeiro, no dia, para o serviço escolhido
+async function loadSlots() {
+  state.time = null;
+  state.slots = null;
+  state.slotsError = '';
+  const request = ++slotRequest; // ignora respostas antigas se a pessoa mudar a escolha
+
+  if (state.service && state.barber && state.date && isDateAllowed(state.date)) {
+    if (new Date(`${state.date}T00:00:00`).getDay() === 0) {
+      state.slots = 'closed'; // domingo
+    } else {
+      state.slots = 'loading';
+      refresh();
+      try {
+        const query = new URLSearchParams({
+          barbeiro_id: state.barber,
+          servico_id: state.service,
+          data: state.date
+        });
+        const result = await api(`/horarios?${query}`);
+        if (request !== slotRequest) return;
+        state.slots = result.horarios;
+      } catch (error) {
+        if (request !== slotRequest) return;
+        state.slots = 'error';
+        state.slotsError = error.message;
+      }
+    }
+  }
+  refresh();
 }
 
 
-/* ---------- 6. Renderização da tela ---------- */
+/* ---------- 5. Renderização da tela ---------- */
 
 function renderChoices() {
-  $('#services').innerHTML = SERVICES.map((service) => `
+  const servicesBox = $('#services');
+  const barbersBox = $('#pros');
+
+  if (state.catalogError) {
+    servicesBox.innerHTML = `<p class="note">${escapeHTML(state.catalogError)}</p>`;
+    barbersBox.innerHTML = '';
+    return;
+  }
+  if (!services.length) {
+    servicesBox.innerHTML = '<p class="note">Carregando serviços...</p>';
+    barbersBox.innerHTML = '';
+    return;
+  }
+
+  servicesBox.innerHTML = services.map((service) => `
     <button class="opt" data-svc="${service.id}" aria-pressed="${state.service === service.id}">
       <span class="pr">${formatBRL(service.preco)}</span>
-      <b>${service.nome}</b>
-      <small>${service.min} min · ${service.desc}</small>
+      <b>${escapeHTML(service.nome)}</b>
+      <small>${service.duracao_min} min</small>
     </button>
   `).join('');
 
-  $('#pros').innerHTML = BARBERS.map((barber) => `
+  barbersBox.innerHTML = barbers.map((barber) => `
     <button class="opt" data-pro="${barber.id}" aria-pressed="${state.barber === barber.id}">
-      <b>${barber.id}</b>
-      <small>${barber.tag}</small>
+      <b>${escapeHTML(barber.nome)}</b>
+      <small>${escapeHTML(barber.especialidade || '')}</small>
     </button>
   `).join('');
 }
 
 function renderSlots() {
-  const slots = getSlots();
   const box = $('#slots');
   const note = $('#slotNote');
+  box.innerHTML = '';
+  note.textContent = '';
 
-  if (slots === null) {
-    box.innerHTML = '';
-    note.textContent = '';
-    return;
-  }
-  if (slots === 'closed') {
-    box.innerHTML = '';
+  if (state.slots === 'loading') {
+    note.textContent = 'Buscando horários livres...';
+  } else if (state.slots === 'closed') {
     note.textContent = 'Fechado aos domingos. Escolha outro dia.';
-    return;
+  } else if (state.slots === 'error') {
+    note.textContent = state.slotsError;
+  } else if (Array.isArray(state.slots)) {
+    if (!state.slots.length) {
+      note.textContent = 'Não há horários livres nesse dia. Escolha outra data.';
+      return;
+    }
+    box.innerHTML = state.slots.map((time) => `
+      <button class="slot" data-t="${time}" aria-pressed="${state.time === time}">${time}</button>
+    `).join('');
+    note.textContent = 'Mostrando apenas os horários livres.';
   }
-
-  box.innerHTML = slots.map((slot) => `
-    <button class="slot" data-t="${slot.t}" ${slot.off ? 'disabled' : ''} aria-pressed="${state.time === slot.t}">
-      ${formatTime(slot.t)}
-    </button>
-  `).join('');
-
-  note.textContent = slots.some((slot) => !slot.off)
-    ? 'Horários riscados já estão ocupados.'
-    : 'Não há horários livres nesse dia. Escolha outra data.';
 }
 
 function renderSummary() {
@@ -289,25 +284,26 @@ function renderSummary() {
       <div class="done">
         <div class="ok">✓</div>
         <h3>Horário confirmado</h3>
-        <p class="note">${escapeHTML(firstName)}, esperamos você ${escapeHTML(formatDateLong(item.date))}
-          às ${formatTime(item.start)}, com ${escapeHTML(item.pro)}.</p>
+        <p class="note">${escapeHTML(firstName)}, esperamos você ${escapeHTML(formatDateLong(item.data))}
+          às ${escapeHTML(item.hora_inicio)}, com ${escapeHTML(item.barbeiro)}.</p>
         <button class="btn" id="again" style="margin-top:14px;width:100%">Fazer outro agendamento</button>
       </div>`;
     return;
   }
 
   const service = state.service ? getService(state.service) : null;
+  const barber = state.barber ? barbers.find((item) => item.id === state.barber) : null;
   const pending = '<span style="color:var(--muted);font-weight:400">A escolher</span>';
   const row = (label, value) => `<dt>${label}</dt><dd>${value || pending}</dd>`;
 
   box.innerHTML = `
     <h3>Seu agendamento</h3>
     <dl>
-      ${row('Serviço', service && service.nome)}
-      ${row('Barbeiro', state.barber)}
+      ${row('Serviço', service && escapeHTML(service.nome))}
+      ${row('Barbeiro', barber && escapeHTML(barber.nome))}
       ${row('Dia', state.date && formatDateLong(state.date))}
-      ${row('Horário', state.time !== null && formatTime(state.time))}
-      ${row('Duração', service && `${service.min} min`)}
+      ${row('Horário', state.time)}
+      ${row('Duração', service && `${service.duracao_min} min`)}
     </dl>
     <div class="total">
       <span>Total no balcão</span>
@@ -324,47 +320,68 @@ function updateLocks() {
   $('#s4').classList.toggle('locked', state.time === null);
 }
 
-function renderAll() {
+function refresh() {
   renderChoices();
   renderSlots();
   renderSummary();
   updateLocks();
 }
 
-function renderPanel() {
+// Painel do barbeiro: mostra o login ou a agenda, conforme a pessoa esteja logada
+async function renderPanel() {
+  const loginBox = $('#login');
+  const adminArea = $('#adminArea');
+
+  if (!getToken()) {
+    loginBox.hidden = false;
+    adminArea.hidden = true;
+    return;
+  }
+  loginBox.hidden = true;
+  adminArea.hidden = false;
+  $('#stats').innerHTML = '';
+  $('#list').innerHTML = '<div class="empty">Carregando agendamentos...</div>';
+
+  try {
+    paintPanel(await api('/agendamentos', { auth: true }));
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      setToken(null);
+      showToast('Sessão expirada. Entre novamente.');
+      renderPanel();
+      return;
+    }
+    $('#list').innerHTML = `<div class="empty">${escapeHTML(error.message)}</div>`;
+  }
+}
+
+function paintPanel(items) {
   const today = toISODate(new Date());
-
-  // Só os horários de hoje em diante, em ordem cronológica
-  const upcoming = loadAppointments()
-    .filter((item) => item.date >= today)
-    .sort((a, b) => (a.date + formatTime(a.start)).localeCompare(b.date + formatTime(b.start)));
-
-  const todayCount = upcoming.filter((item) => item.date === today).length;
-  const revenue = upcoming.reduce((sum, item) => sum + item.preco, 0);
+  const todayCount = items.filter((item) => item.data === today).length;
+  const revenue = items.reduce((sum, item) => sum + item.preco, 0);
 
   $('#stats').innerHTML = `
     <div class="card stat"><b>${todayCount}</b><span>agendamentos hoje</span></div>
-    <div class="card stat"><b>${upcoming.length}</b><span>próximos horários</span></div>
+    <div class="card stat"><b>${items.length}</b><span>próximos horários</span></div>
     <div class="card stat"><b>${formatBRL(revenue)}</b><span>previsto nos próximos horários</span></div>`;
 
-  if (!upcoming.length) {
+  if (!items.length) {
     $('#list').innerHTML = '<div class="empty">Nenhum horário marcado. Quando alguém agendar, aparece aqui.</div>';
     return;
   }
 
-  $('#list').innerHTML = upcoming.map((item) => {
-    const service = getService(item.svc);
-    const shortDate = new Date(`${item.date}T00:00:00`).toLocaleDateString('pt-BR', {
+  $('#list').innerHTML = items.map((item) => {
+    const shortDate = new Date(`${item.data}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit'
     });
     return `
       <div class="appt">
-        <div class="when">${formatTime(item.start)}<small>${escapeHTML(shortDate)}</small></div>
+        <div class="when">${escapeHTML(item.hora_inicio)}<small>${escapeHTML(shortDate)}</small></div>
         <div class="who">
           <b>${escapeHTML(item.cliente)}</b>
-          <small>${escapeHTML(service ? service.nome : 'Serviço')} · ${escapeHTML(item.pro)} · ${escapeHTML(item.tel)}</small>
+          <small>${escapeHTML(item.servico)} · ${escapeHTML(item.barbeiro)} · ${escapeHTML(formatPhone(item.telefone))}</small>
         </div>
         <button class="cancel" data-cancel="${item.id}">Cancelar</button>
       </div>`;
@@ -372,14 +389,15 @@ function renderPanel() {
 }
 
 
-/* ---------- 7. Ações do usuário ---------- */
+/* ---------- 6. Ações do usuário ---------- */
 
-function confirmBooking() {
+async function confirmBooking() {
   const errorBox = $('#err');
+  const button = $('#confirm');
   const name = $('#nome').value.trim();
   const phone = $('#tel').value;
 
-  // Validações, uma por vez, com mensagem clara
+  // Validações rápidas no navegador (a API repete todas elas)
   if (!state.service || !state.barber || !state.date || state.time === null) {
     errorBox.textContent = 'Escolha serviço, barbeiro, dia e horário para continuar.';
     return;
@@ -399,60 +417,101 @@ function confirmBooking() {
     return;
   }
 
-  // Confere de novo se o horário continua livre antes de salvar
-  const slots = getSlots();
-  const stillFree = Array.isArray(slots) && slots.some((slot) => slot.t === state.time && !slot.off);
-  if (!stillFree) {
-    errorBox.textContent = 'Esse horário acabou de ser ocupado. Escolha outro.';
-    state.time = null;
-    renderAll();
-    return;
+  errorBox.textContent = '';
+  button.disabled = true;
+  button.textContent = 'Confirmando...';
+
+  try {
+    state.confirmed = await api('/agendamentos', {
+      method: 'POST',
+      body: {
+        servico_id: state.service,
+        barbeiro_id: state.barber,
+        data: state.date,
+        hora_inicio: state.time,
+        nome: name,
+        telefone: phone
+      }
+    });
+    refresh();
+    showToast('Horário confirmado');
+  } catch (error) {
+    if (error.status === 409) {
+      // Alguém ocupou o horário nesse meio-tempo: atualiza a lista e avisa
+      await loadSlots();
+      $('#err').textContent = error.message;
+      return;
+    }
+    errorBox.textContent = error.message;
+    button.disabled = false;
+    button.textContent = 'Confirmar horário';
   }
-
-  const service = getService(state.service);
-  const appointment = {
-    id: randomId(),
-    svc: state.service,
-    pro: state.barber,
-    date: state.date,
-    start: state.time,
-    min: service.min,
-    preco: service.preco,
-    cliente: name,
-    tel: phone
-  };
-
-  saveAppointments(loadAppointments().concat(appointment));
-  state.confirmed = appointment;
-  renderAll();
-  renderPanel();
-  showToast('Horário confirmado');
 }
 
 function resetBooking() {
   state.service = null;
   state.barber = null;
   state.time = null;
+  state.slots = null;
   state.confirmed = null;
   state.date = '';
   $('#date').value = '';
   $('#nome').value = '';
   $('#tel').value = '';
-  renderAll();
+  refresh();
   window.scrollTo(0, 0);
 }
 
+async function doLogin() {
+  const email = $('#email').value.trim();
+  const password = $('#senha').value;
+  const errorBox = $('#loginErr');
+  const button = $('#loginBtn');
+
+  if (!email || !password) {
+    errorBox.textContent = 'Informe e-mail e senha.';
+    return;
+  }
+
+  errorBox.textContent = '';
+  button.disabled = true;
+  button.textContent = 'Entrando...';
+  try {
+    const result = await api('/login', { method: 'POST', body: { email, senha: password } });
+    setToken(result.access_token);
+    $('#senha').value = '';
+    renderPanel();
+  } catch (error) {
+    errorBox.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Entrar';
+  }
+}
+
+function logout() {
+  setToken(null);
+  renderPanel();
+}
+
 // O cancelamento pede um segundo clique para evitar toques acidentais
-function cancelAppointment(button) {
+async function cancelAppointment(button) {
   if (!button.classList.contains('armed')) {
     button.classList.add('armed');
     button.textContent = 'Confirmar cancelamento';
     return;
   }
-  saveAppointments(loadAppointments().filter((item) => item.id !== button.dataset.cancel));
-  renderPanel();
-  renderSlots();
-  showToast('Horário cancelado e liberado');
+
+  button.disabled = true;
+  try {
+    await api(`/agendamentos/${button.dataset.cancel}/cancelar`, { method: 'PATCH', auth: true });
+    showToast('Horário cancelado e liberado');
+    renderPanel();
+  } catch (error) {
+    button.disabled = false;
+    showToast(error.message);
+    if (error.status === 401 || error.status === 403) logout();
+  }
 }
 
 // Alterna entre as abas "Agendar" e "Painel"
@@ -467,7 +526,7 @@ function showTab(name) {
 }
 
 
-/* ---------- 8. Eventos e inicialização ---------- */
+/* ---------- 7. Eventos e inicialização ---------- */
 
 // Um único "ouvinte" de clique trata todos os botões da página
 document.addEventListener('click', (event) => {
@@ -477,17 +536,15 @@ document.addEventListener('click', (event) => {
   if (button.dataset.tab) {
     showTab(button.dataset.tab);
   } else if (button.dataset.svc) {
-    state.service = button.dataset.svc;
-    state.time = null;
+    state.service = Number(button.dataset.svc);
     state.confirmed = null;
-    renderAll();
+    loadSlots();
   } else if (button.dataset.pro) {
-    state.barber = button.dataset.pro;
-    state.time = null;
+    state.barber = Number(button.dataset.pro);
     state.confirmed = null;
-    renderAll();
+    loadSlots();
   } else if (button.dataset.t) {
-    state.time = Number(button.dataset.t);
+    state.time = button.dataset.t;
     renderSlots();
     renderSummary();
     updateLocks();
@@ -495,6 +552,10 @@ document.addEventListener('click', (event) => {
     confirmBooking();
   } else if (button.id === 'again') {
     resetBooking();
+  } else if (button.id === 'loginBtn') {
+    doLogin();
+  } else if (button.id === 'logout') {
+    logout();
   } else if (button.dataset.cancel) {
     cancelAppointment(button);
   }
@@ -507,7 +568,6 @@ dateInput.min = range.min;
 dateInput.max = range.max;
 
 dateInput.addEventListener('change', () => {
-  state.time = null;
   state.confirmed = null;
 
   // Data digitada fora do prazo (passada ou distante demais): recusa e limpa o campo
@@ -518,15 +578,23 @@ dateInput.addEventListener('change', () => {
   } else {
     state.date = dateInput.value;
   }
-  renderAll();
+  loadSlots();
 });
 
 $('#tel').addEventListener('input', (event) => {
   event.target.value = formatPhone(event.target.value);
 });
 
-// Início
-seedExamples();
-renderAll();
-renderPanel();
-if (location.hash === '#painel') showTab('painel');
+$('#senha').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') doLogin();
+});
+
+// Início: mostra a tela e carrega serviços e barbeiros da API
+async function init() {
+  refresh();
+  await loadCatalog();
+  refresh();
+  if (location.hash === '#painel') showTab('painel');
+}
+
+init();

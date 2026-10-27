@@ -561,3 +561,29 @@ footer {
     transition: none!important;
   }
 }
+
+/* ---------- Login do painel ---------- */
+.login {
+  max-width: 400px;
+  margin-bottom: 56px;
+}
+
+.login h3 {
+  font-size: 1.25rem;
+  margin-bottom: 14px;
+}
+
+.login input {
+  margin-bottom: 14px;
+}
+
+.login .btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}

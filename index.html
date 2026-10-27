@@ -51,13 +51,25 @@
   </section>
 
   <section id="painel" hidden>
-    <div class="hero"><div><h1>Agenda da semana</h1><p>Os agendamentos feitos na página aparecem aqui. Cancele um horário para liberá-lo de novo.</p></div></div>
-    <div class="stats" id="stats"></div>
-    <div class="card" id="list" style="margin-bottom:56px"></div>
+    <div class="hero"><div><h1>Agenda da semana</h1><p>Os agendamentos feitos no site aparecem aqui. Cancele um horário para liberá-lo de novo.</p></div></div>
+    <div class="card login" id="login" hidden>
+      <h3>Acesso do barbeiro</h3>
+      <label for="email">E-mail</label>
+      <input id="email" type="email" autocomplete="username" placeholder="voce@exemplo.com">
+      <label for="senha">Senha</label>
+      <input id="senha" type="password" autocomplete="current-password">
+      <p class="err" id="loginErr"></p>
+      <button class="btn" id="loginBtn">Entrar</button>
+    </div>
+    <div id="adminArea" hidden>
+      <div class="tools"><button class="btn ghost" id="logout">Sair</button></div>
+      <div class="stats" id="stats"></div>
+      <div class="card" id="list" style="margin-bottom:56px"></div>
+    </div>
   </section>
 </main>
 
-<footer><div class="wrap">Navalha &amp; Co. é uma barbearia fictícia, criada para um projeto de portfólio. Os dados ficam salvos só neste navegador.</div></footer>
+<footer><div class="wrap">Navalha &amp; Co. é uma barbearia fictícia, criada para um projeto de portfólio. Os agendamentos ficam salvos em um banco de dados MySQL.</div></footer>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="script.js"></script>
