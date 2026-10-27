@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Navalha &amp; Co. – Agendamento online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="pole"></div>
+  <div class="wrap bar">
+    <div class="brand">Navalha <span>&amp;</span> Co.</div>
+    <nav aria-label="Seções">
+      <button data-tab="agendar" aria-current="true">Agendar</button>
+      <button data-tab="painel">Painel</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="agendar">
+    <div class="hero">
+      <div>
+        <h1>Seu horário na cadeira, sem fila e sem ligação.</h1>
+        <p>Escolha o serviço, o barbeiro e o horário. A confirmação é na hora.</p>
+        <div class="info"><span><b>Seg a sex</b> 9h às 19h</span><span><b>Sábado</b> 9h às 16h</span><span><b>Domingo</b> fechado</span></div>
+      </div>
+    </div>
+    <div class="layout">
+      <div class="card" id="flow">
+        <div class="step" id="s1"><h3><i>1</i>Escolha o serviço</h3><div class="grid" id="services"></div></div>
+        <div class="step locked" id="s2"><h3><i>2</i>Escolha o barbeiro</h3><div class="grid" id="pros"></div></div>
+        <div class="step locked" id="s3"><h3><i>3</i>Escolha dia e horário</h3>
+          <div style="max-width:240px"><label for="date">Data</label><input type="date" id="date"></div>
+          <div class="slots" id="slots" role="group" aria-label="Horários"></div>
+          <p class="note" id="slotNote"></p>
+        </div>
+        <div class="step locked" id="s4"><h3><i>4</i>Seus dados</h3>
+          <div class="fields">
+            <div><label for="nome">Nome</label><input id="nome" autocomplete="name" placeholder="Como devemos te chamar"></div>
+            <div><label for="tel">Celular com DDD</label><input id="tel" inputmode="numeric" autocomplete="tel" placeholder="(11) 91234-5678"></div>
+          </div>
+        </div>
+      </div>
+      <aside class="side"><div class="card sum" id="summary"></div></aside>
+    </div>
+  </section>
+
+  <section id="painel" hidden>
+    <div class="hero"><div><h1>Agenda da semana</h1><p>Os agendamentos feitos na página aparecem aqui. Cancele um horário para liberá-lo de novo.</p></div></div>
+    <div class="stats" id="stats"></div>
+    <div class="card" id="list" style="margin-bottom:56px"></div>
+  </section>
+</main>
+
+<footer><div class="wrap">Navalha &amp; Co. é uma barbearia fictícia, criada para um projeto de portfólio. Os dados ficam salvos só neste navegador.</div></footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

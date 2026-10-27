@@ -1,0 +1,563 @@
+/* ==========================================================================
+   Navalha & Co. – Estilos
+   Ordem: variáveis → base → cabeçalho → hero → botões → formulário → painel
+   ========================================================================== */
+
+/* ---------- Variáveis de cor e tema (claro e escuro) ---------- */
+:root {
+  --bg: #f2f5f8;
+  --surface: #fff;
+  --ink: #0f1c2b;
+  --muted: #5a6878;
+  --line: #dbe2ea;
+  --accent: #c63d2f;
+  --accent-ink: #fff;
+  --blue: #2c5b8a;
+  --ok: #25784a;
+  --shadow: 0 8px 28px rgba(15,28,43,.08);
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top,0px);
+  padding-bottom: env(safe-area-inset-bottom,0px);
+}
+
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b131c;
+    --surface: #131f2c;
+    --ink: #e8eef5;
+    --muted: #9aa8b8;
+    --line: #243243;
+    --accent: #ee6a5a;
+    --accent-ink: #1c0904;
+    --blue: #6fa3d8;
+    --ok: #5cc08a;
+    --shadow: 0 8px 28px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b131c;
+  --surface: #131f2c;
+  --ink: #e8eef5;
+  --muted: #9aa8b8;
+  --line: #243243;
+  --accent: #ee6a5a;
+  --accent-ink: #1c0904;
+  --blue: #6fa3d8;
+  --ok: #5cc08a;
+  --shadow: 0 8px 28px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
+/* ---------- Base: reset, tipografia e acessibilidade ---------- */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: calc(env(safe-area-inset-top,0px) + 70px);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top,0px);
+  background: var(--bg);
+  z-index: 30;
+}
+
+h1,
+h2,
+h3,
+.brand {
+  font-family: Oswald,"Arial Narrow",Impact,sans-serif;
+  font-weight: 600;
+  letter-spacing: .01em;
+  margin: 0;
+}
+
+/* ---------- Estrutura da página e cabeçalho ---------- */
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.top {
+  position: sticky;
+  top: env(safe-area-inset-top,0px);
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.pole {
+  height: 6px;
+  background: repeating-linear-gradient(135deg,var(--accent) 0 12px,#fff 12px 24px,var(--blue) 24px 36px,#fff 36px 48px);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.brand {
+  font-size: 1.5rem;
+}
+
+.brand span {
+  color: var(--accent);
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 500 .95rem Inter,sans-serif;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+nav button[aria-current=true] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ---------- Abertura (hero) ---------- */
+.hero {
+  padding: 48px 0 32px;
+  display: grid;
+  gap: 24px;
+  align-items: end;
+}
+
+.hero h1 {
+  font-size: clamp(2.4rem,7vw,4.6rem);
+  line-height: 1.02;
+  max-width: 14ch;
+}
+
+.hero p {
+  color: var(--muted);
+  max-width: 46ch;
+  margin: 14px 0 0;
+  font-size: 1.08rem;
+}
+
+.hero .info {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: .92rem;
+  margin-top: 22px;
+}
+
+.hero .info b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- Botões ---------- */
+.btn {
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 1rem Inter,sans-serif;
+  padding: 13px 22px;
+  cursor: pointer;
+  transition: transform .12s;
+}
+
+.btn:active {
+  transform: scale(.98);
+}
+
+.btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.btn.ghost {
+  background: none;
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+}
+
+/* ---------- Layout do agendamento e cartões ---------- */
+.layout {
+  display: grid;
+  gap: 20px;
+  padding-bottom: 56px;
+}
+
+@media(min-width:900px) {
+  .layout {
+    grid-template-columns: 1fr 320px;
+    align-items: start;
+  }
+
+  .hero {
+    grid-template-columns: 1fr auto;
+  }
+
+  .side {
+    position: sticky;
+    top: 90px;
+  }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+/* ---------- Etapas do formulário ---------- */
+.step {
+  padding: 6px 0 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 22px;
+}
+
+.step:last-of-type {
+  border: 0;
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.step.locked {
+  opacity: .4;
+  pointer-events: none;
+}
+
+.step h3 {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.step h3 i {
+  font: 600 .85rem Inter,sans-serif;
+  font-style: normal;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  display: grid;
+  place-items: center;
+}
+
+.grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+}
+
+/* ---------- Opções de serviço e de barbeiro ---------- */
+.opt {
+  text-align: left;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  color: inherit;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color .12s;
+}
+
+.opt:hover {
+  border-color: var(--muted);
+}
+
+.opt[aria-pressed=true] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent);
+}
+
+.opt b {
+  display: block;
+  font-weight: 600;
+}
+
+.opt small {
+  color: var(--muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.opt .pr {
+  float: right;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- Horários disponíveis ---------- */
+.slots {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill,minmax(76px,1fr));
+  margin-top: 14px;
+}
+
+.slot {
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  color: inherit;
+  font: 500 .95rem Inter,sans-serif;
+  cursor: pointer;
+}
+
+.slot[aria-pressed=true] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.slot:disabled {
+  opacity: .35;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* ---------- Campos de formulário ---------- */
+label {
+  display: block;
+  font-weight: 500;
+  font-size: .92rem;
+  margin-bottom: 6px;
+}
+
+input {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+}
+
+.fields {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+}
+
+.note {
+  color: var(--muted);
+  font-size: .92rem;
+  margin: 12px 0 0;
+}
+
+/* ---------- Resumo do agendamento ---------- */
+.sum h3 {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+
+.sum dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  font-size: .95rem;
+}
+
+.sum dt {
+  color: var(--muted);
+}
+
+.sum dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-top: 1px dashed var(--line);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.total b {
+  font: 600 1.7rem Oswald,sans-serif;
+}
+
+.sum .btn {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.err {
+  color: var(--accent);
+  font-size: .9rem;
+  min-height: 1.3em;
+  margin: 10px 0 0;
+}
+
+.done {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.done .ok {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  margin: 0 auto 12px;
+}
+
+/* ---------- Painel do barbeiro ---------- */
+.stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  margin: 8px 0 20px;
+}
+
+.stat b {
+  display: block;
+  font: 600 2rem Oswald,sans-serif;
+}
+
+.stat span {
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.appt {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.appt:last-child {
+  border: 0;
+}
+
+.when {
+  min-width: 92px;
+  font-family: Oswald,sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.when small {
+  display: block;
+  font: 400 .82rem Inter,sans-serif;
+  color: var(--muted);
+}
+
+.who {
+  flex: 1;
+  min-width: 180px;
+}
+
+.who small {
+  color: var(--muted);
+  display: block;
+}
+
+.cancel {
+  border: 1.5px solid var(--line);
+  background: none;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font: 500 .88rem Inter,sans-serif;
+  cursor: pointer;
+}
+
+.cancel.armed {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 34px 10px;
+}
+
+/* ---------- Aviso, rodapé e utilidades ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom,0px));
+  transform: translate(-50%,20px);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 12px 20px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: .25s;
+  z-index: 40;
+  font-size: .95rem;
+}
+
+.toast.on {
+  opacity: 1;
+  transform: translate(-50%,0);
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .88rem;
+  padding: 22px 0;
+}
+
+[hidden] {
+  display: none!important;
+}
+
+@media(prefers-reduced-motion:reduce) {
+  * {
+    transition: none!important;
+  }
+}
