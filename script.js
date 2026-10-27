@@ -17,7 +17,7 @@
 // Endereço da API: local quando o site roda no seu computador, publicada quando está no ar
 const API_URL = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? 'http://127.0.0.1:8000'
-  : 'https://SUA-API.onrender.com'; // troque pelo endereço da API publicada
+    : 'https://barbearia-api-s291.onrender.com'; // endereço da API publicada
 
 const MAX_DAYS_AHEAD = 30; // até quantos dias à frente dá para agendar
 const TOKEN_KEY = 'navalha-token';

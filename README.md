@@ -79,7 +79,7 @@ barbearia-agendamento/
 - [x] Separar o código em `index.html`, `style.css` e `script.js`
 - [x] Criar a API com banco de dados MySQL
 - [x] Login para o painel do barbeiro
-- [ ] Publicar a API e o banco na nuvem
+- [x] Publicar a API e o banco na nuvem
 - [ ] Envio de lembrete ao cliente
 
 ## 👤 Autor
