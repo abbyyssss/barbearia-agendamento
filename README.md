@@ -15,7 +15,7 @@ Site de agendamento para uma barbearia fictícia, com front-end, API própria e 
 ## 🏗️ Arquitetura
 
 ```
-Navegador → Site (GitHub Pages) → API (FastAPI) → Banco MySQL
+Visitante → GitHub Pages (site) → Render (API) → Aiven (banco)
 ```
 
 - **Este repositório:** o site (HTML, CSS e JavaScript).
