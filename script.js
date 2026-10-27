@@ -33,6 +33,7 @@ const OPEN_TIME = 9 * 60;
 const CLOSE_WEEKDAY = 19 * 60;
 const CLOSE_SATURDAY = 16 * 60;
 const SLOT_STEP = 30;
+const MAX_DAYS_AHEAD = 30; // até quantos dias à frente dá para agendar
 
 const STORAGE_KEY = 'navalha-agenda-v1';
 const SEED_KEY = 'navalha-agenda-seed';
@@ -76,6 +77,21 @@ function getService(id) {
 // Date -> 'AAAA-MM-DD'
 function toISODate(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+// Primeiro e último dia em que o cliente pode agendar ('AAAA-MM-DD')
+function getBookingRange() {
+  const first = new Date();
+  const last = new Date();
+  last.setDate(first.getDate() + MAX_DAYS_AHEAD);
+  return { min: toISODate(first), max: toISODate(last) };
+}
+
+// O campo de data só bloqueia valores no calendário; quem digita à mão passa.
+// Por isso a regra também é conferida aqui, no JavaScript.
+function isDateAllowed(isoDate) {
+  const { min, max } = getBookingRange();
+  return isoDate >= min && isoDate <= max;
 }
 
 // 570 -> '09:30'
@@ -186,6 +202,7 @@ function seedExamples() {
 */
 function getSlots() {
   if (!state.service || !state.barber || !state.date) return null;
+  if (!isDateAllowed(state.date)) return null;
 
   const day = new Date(`${state.date}T00:00:00`);
   const weekday = day.getDay();
@@ -367,6 +384,10 @@ function confirmBooking() {
     errorBox.textContent = 'Escolha serviço, barbeiro, dia e horário para continuar.';
     return;
   }
+  if (!isDateAllowed(state.date)) {
+    errorBox.textContent = 'Escolha uma data entre hoje e os próximos 30 dias.';
+    return;
+  }
   if (name.length < 2) {
     errorBox.textContent = 'Informe seu nome.';
     $('#nome').focus();
@@ -481,15 +502,22 @@ document.addEventListener('click', (event) => {
 
 // Campo de data: de hoje até 30 dias à frente
 const dateInput = $('#date');
-const today = new Date();
-const lastDay = new Date();
-lastDay.setDate(today.getDate() + 30);
-dateInput.min = toISODate(today);
-dateInput.max = toISODate(lastDay);
+const range = getBookingRange();
+dateInput.min = range.min;
+dateInput.max = range.max;
 
 dateInput.addEventListener('change', () => {
-  state.date = dateInput.value;
   state.time = null;
+  state.confirmed = null;
+
+  // Data digitada fora do prazo (passada ou distante demais): recusa e limpa o campo
+  if (dateInput.value && !isDateAllowed(dateInput.value)) {
+    showToast('Escolha uma data a partir de hoje, em até 30 dias.');
+    dateInput.value = '';
+    state.date = '';
+  } else {
+    state.date = dateInput.value;
+  }
   renderAll();
 });
 
