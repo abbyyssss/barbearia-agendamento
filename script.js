@@ -15,11 +15,9 @@
 /* ---------- 1. Configuração ---------- */
 
 // Endereço da API: local quando o site roda no seu computador, publicada quando está no ar
-
 const API_URL = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? 'http://127.0.0.1:8000'
-  : 'https://barbearia-api-s29l.onrender.com';
-
+  : 'https://SUA-API.onrender.com'; // troque pelo endereço da API publicada
 
 const MAX_DAYS_AHEAD = 30; // até quantos dias à frente dá para agendar
 const TOKEN_KEY = 'navalha-token';
@@ -35,7 +33,8 @@ const state = {
   slots: null,         // null | 'loading' | 'closed' | 'error' | lista de 'HH:MM'
   slotsError: '',      // mensagem quando os horários não carregam
   confirmed: null,     // agendamento recém-confirmado
-  catalogError: ''     // mensagem quando serviços/barbeiros não carregam
+  catalogError: '',    // mensagem quando serviços/barbeiros não carregam
+  waking: false        // true quando a API demora (plano gratuito dormindo)
 };
 
 let services = [];     // vêm da API
@@ -230,7 +229,9 @@ function renderChoices() {
     return;
   }
   if (!services.length) {
-    servicesBox.innerHTML = '<p class="note">Carregando serviços...</p>';
+    servicesBox.innerHTML = state.waking
+      ? '<p class="note">Acordando o servidor… Na primeira visita, isso pode levar até 1 minuto. Já já os serviços aparecem.</p>'
+      : '<p class="note">Carregando serviços...</p>';
     barbersBox.innerHTML = '';
     return;
   }
@@ -594,7 +595,16 @@ $('#senha').addEventListener('keydown', (event) => {
 // Início: mostra a tela e carrega serviços e barbeiros da API
 async function init() {
   refresh();
+
+  // Se a API demorar (plano gratuito "dormindo"), avisa em vez de parecer travado
+  const wakeTimer = setTimeout(() => {
+    state.waking = true;
+    refresh();
+  }, 4000);
+
   await loadCatalog();
+  clearTimeout(wakeTimer);
+  state.waking = false;
   refresh();
   if (location.hash === '#painel') showTab('painel');
 }
