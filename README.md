@@ -1,13 +1,13 @@
 # Navalha & Co. – Sistema de agendamento online
 
-Site de agendamento para uma barbearia fictícia, com front-end, API própria e banco de dados MySQL. O cliente escolhe serviço, barbeiro, dia e horário, e o barbeiro acompanha tudo em um painel protegido por login.
+Sistema completo de agendamento para uma barbearia fictícia: site, API própria e banco de dados na nuvem. O cliente escolhe serviço, barbeiro, dia e horário, e o barbeiro acompanha tudo em um painel protegido por login.
 
 🔗 **Demonstração:** https://abbyyssss.github.io/barbearia-agendamento/
 
 > Projeto de portfólio. A barbearia e os dados são fictícios.
-> A API roda em um plano gratuito de hospedagem: se ninguém usou o site por um tempo, a primeira abertura pode levar alguns segundos a mais.
+> A API roda em um plano gratuito de hospedagem: se ninguém usou o site por um tempo, a primeira abertura pode levar até cerca de 1 minuto para carregar os serviços. Depois disso, fica rápido.
 
-<!-- Depois de publicar, adicione prints em docs/ e descomente:
+<!-- Depois de adicionar os prints em docs/, descomente:
 ![Tela de agendamento](docs/agendar.png)
 ![Painel do barbeiro](docs/painel.png)
 -->
@@ -15,11 +15,11 @@ Site de agendamento para uma barbearia fictícia, com front-end, API própria e 
 ## 🏗️ Arquitetura
 
 ```
-Visitante → GitHub Pages (site) → Render (API) → Aiven (banco)
+Visitante → Site (GitHub Pages) → API (Render) → Banco MySQL (Aiven)
 ```
 
 - **Este repositório:** o site (HTML, CSS e JavaScript).
-- **[barbearia-api](https://github.com/abbyyssss/barbearia-api):** a API em Python e o banco de dados.
+- **[barbearia-api](https://github.com/abbyyssss/barbearia-api):** a API em Python e as regras de negócio.
 
 ## ✨ Funcionalidades
 
@@ -42,18 +42,17 @@ Visitante → GitHub Pages (site) → Render (API) → Aiven (banco)
 
 - **Regras no servidor:** datas passadas, domingos, expediente e conflitos de horário são validados na API, não só no navegador.
 - **Sem horários duplicados:** a criação do agendamento usa transação com bloqueio por barbeiro, para que dois pedidos simultâneos não ocupem o mesmo horário.
-- **Painel protegido:** login com token JWT, e senhas guardadas com hash (bcrypt).
+- **Painel protegido:** login com token JWT e senhas guardadas com hash (bcrypt).
 - **Segredos fora do código:** senha do banco e chave do token ficam em variáveis de ambiente.
 - **Código organizado:** HTML, CSS e JavaScript separados, e o JavaScript dividido em seções por responsabilidade.
 
 ## 🛠️ Tecnologias
 
-| Camada | Tecnologias |
-|---|---|
-| Site | HTML5, CSS3, JavaScript puro |
-| API | Python, FastAPI, SQLAlchemy |
-| Banco de dados | MySQL |
-| Hospedagem | GitHub Pages (site) |
+| Camada | Tecnologias | Hospedagem |
+|---|---|---|
+| Site | HTML5, CSS3, JavaScript puro | GitHub Pages |
+| API | Python, FastAPI, SQLAlchemy | Render |
+| Banco de dados | MySQL | Aiven |
 
 ## 📁 Estrutura
 
@@ -72,7 +71,7 @@ barbearia-agendamento/
    ```bash
    git clone https://github.com/abbyyssss/barbearia-agendamento.git
    ```
-3. Abra a pasta no VS Code e use a extensão **Live Server** no `index.html`. O site abre em `http://127.0.0.1:5500` e usa a API local automaticamente.
+3. Abra a pasta no VS Code e use a extensão **Live Server** no `index.html`. Em `127.0.0.1` ou `localhost`, o site usa a API local automaticamente.
 
 ## 🗺️ Próximos passos
 
@@ -80,6 +79,8 @@ barbearia-agendamento/
 - [x] Criar a API com banco de dados MySQL
 - [x] Login para o painel do barbeiro
 - [x] Publicar a API e o banco na nuvem
+- [ ] Testes automatizados das regras de horário
+- [ ] Cadastro de serviços e barbeiros pelo painel
 - [ ] Envio de lembrete ao cliente
 
 ## 👤 Autor
