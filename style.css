@@ -460,3 +460,14 @@ main > section { animation: fade .7s var(--ease) both; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none!important; animation: none!important; }
 }
+
+/* ---------- Lembrete (botão do painel) ---------- */
+a.cancel {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.cancel.remind:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

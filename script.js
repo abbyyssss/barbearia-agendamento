@@ -290,7 +290,8 @@ function renderSummary() {
         <h3>Horário confirmado</h3>
         <p class="note">${escapeHTML(firstName)}, esperamos você ${escapeHTML(formatDateLong(item.data))}
           às ${escapeHTML(item.hora_inicio)}, com ${escapeHTML(item.barbeiro)}.</p>
-        <button class="btn" id="again" style="margin-top:14px;width:100%">Fazer outro agendamento</button>
+        <button class="btn" id="addCal" style="margin-top:14px;width:100%">Adicionar à agenda</button>
+        <button class="btn ghost" id="again" style="margin-top:10px;width:100%">Fazer outro agendamento</button>
       </div>`;
     return;
   }
@@ -387,6 +388,7 @@ function paintPanel(items) {
           <b>${escapeHTML(item.cliente)}</b>
           <small>${escapeHTML(item.servico)} · ${escapeHTML(item.barbeiro)} · ${escapeHTML(formatPhone(item.telefone))}</small>
         </div>
+        <a class="cancel remind" href="${whatsappLink(item)}" target="_blank" rel="noopener">Lembrar</a>
         <button class="cancel" data-cancel="${item.id}">Cancelar</button>
       </div>`;
   }).join('');
@@ -450,6 +452,57 @@ async function confirmBooking() {
     button.disabled = false;
     button.textContent = 'Confirmar horário';
   }
+}
+
+// Lembrete para o cliente: arquivo de calendário (.ics) com alarmes de 1 dia e 1 hora antes
+function addToCalendar() {
+  const item = state.confirmed;
+  if (!item) return;
+
+  const icsText = (text) => String(text).replace(/([,;\\])/g, '\\$1');
+  const stamp = (time) => `${item.data.replaceAll('-', '')}T${time.replace(':', '')}00`;
+  const alarm = (trigger, message) => [
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${message}`, `TRIGGER:${trigger}`, 'END:VALARM'
+  ];
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Navalha & Co.//Agendamento//PT-BR',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${item.id}-${Date.now()}@navalha-co.exemplo`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+    `DTSTART:${stamp(item.hora_inicio)}`,
+    `DTEND:${stamp(item.hora_fim)}`,
+    `SUMMARY:${icsText(item.servico)} na Navalha & Co.`,
+    `DESCRIPTION:${icsText(`Barbeiro: ${item.barbeiro}`)}`,
+    `LOCATION:${icsText('Rua das Tesouras, 123 - Centro (endereço fictício)')}`,
+    ...alarm('-P1D', 'Amanhã é o seu horário na Navalha & Co.'),
+    ...alarm('-PT1H', 'Seu horário na Navalha & Co. é daqui a 1 hora'),
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ];
+
+  const file = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'horario-navalha.ics';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Arquivo de calendário baixado');
+}
+
+// Lembrete pelo painel: abre o WhatsApp com a mensagem pronta para o cliente
+function whatsappLink(item) {
+  const digits = item.telefone.replace(/\D/g, '');
+  const firstName = item.cliente.split(' ')[0];
+  const text = `Olá, ${firstName}! Passando para lembrar do seu horário na Navalha & Co.: `
+    + `${item.servico} com ${item.barbeiro}, ${formatDateLong(item.data)} às ${item.hora_inicio}. Até lá!`;
+  return `https://wa.me/55${digits}?text=${encodeURIComponent(text)}`;
 }
 
 function resetBooking() {
@@ -554,6 +607,8 @@ document.addEventListener('click', (event) => {
     updateLocks();
   } else if (button.id === 'confirm') {
     confirmBooking();
+  } else if (button.id === 'addCal') {
+    addToCalendar();
   } else if (button.id === 'again') {
     resetBooking();
   } else if (button.id === 'loginBtn') {
