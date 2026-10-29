@@ -81,7 +81,7 @@ barbearia-agendamento/
 - [x] Publicar a API e o banco na nuvem
 - [x] Testes automatizados das regras de horário
 - [ ] Cadastro de serviços e barbeiros pelo painel
-- [ ] Envio de lembrete ao cliente
+- [x] Envio de lembrete ao cliente
 
 ## 👤 Autor
 
