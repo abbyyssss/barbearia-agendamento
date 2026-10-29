@@ -17,11 +17,10 @@
 // Endereço da API: local quando o site roda no seu computador, publicada quando está no ar
 const API_URL = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? 'http://127.0.0.1:8000'
-  : 'https://SUA-API.onrender.com'; // troque pelo endereço da API publicada
+  : 'https://barbearia-api-s291.onrender.com'; // endereço da API publicada (Render)
 
 const MAX_DAYS_AHEAD = 30; // até quantos dias à frente dá para agendar
 const TOKEN_KEY = 'navalha-token';
-const SERVICE_ICONS = ['✂️', '🧔', '💈', '✨']; // um ícone por serviço, na ordem da API
 
 
 /* ---------- 2. Estado da tela ---------- */
@@ -237,18 +236,17 @@ function renderChoices() {
     return;
   }
 
-  servicesBox.innerHTML = services.map((service, index) => `
+  servicesBox.innerHTML = services.map((service) => `
     <button class="opt" data-svc="${service.id}" aria-pressed="${state.service === service.id}">
-      <span class="ico">${SERVICE_ICONS[index % SERVICE_ICONS.length]}</span>
       <span class="pr">${formatBRL(service.preco)}</span>
       <b>${escapeHTML(service.nome)}</b>
       <small>${service.duracao_min} min</small>
     </button>
   `).join('');
 
-  barbersBox.innerHTML = barbers.map((barber, index) => `
+  barbersBox.innerHTML = barbers.map((barber) => `
     <button class="opt" data-pro="${barber.id}" aria-pressed="${state.barber === barber.id}">
-      <span class="ava c${index % 3}">${escapeHTML(barber.nome.charAt(0))}</span>
+      <span class="ava">${escapeHTML(barber.nome.charAt(0))}</span>
       <b>${escapeHTML(barber.nome)}</b>
       <small>${escapeHTML(barber.especialidade || '')}</small>
     </button>
@@ -272,8 +270,8 @@ function renderSlots() {
       note.textContent = 'Não há horários livres nesse dia. Escolha outra data.';
       return;
     }
-    box.innerHTML = state.slots.map((time) => `
-      <button class="slot" data-t="${time}" aria-pressed="${state.time === time}">${time}</button>
+    box.innerHTML = state.slots.map((time, index) => `
+      <button class="slot" style="--i:${index}" data-t="${time}" aria-pressed="${state.time === time}">${time}</button>
     `).join('');
     note.textContent = 'Mostrando apenas os horários livres.';
   }
@@ -565,6 +563,15 @@ document.addEventListener('click', (event) => {
   } else if (button.dataset.cancel) {
     cancelAppointment(button);
   }
+});
+
+// Brilho suave que acompanha o mouse em botões e opções
+document.addEventListener('pointermove', (event) => {
+  const target = event.target.closest('.btn, .opt');
+  if (!target) return;
+  const box = target.getBoundingClientRect();
+  target.style.setProperty('--mx', `${event.clientX - box.left}px`);
+  target.style.setProperty('--my', `${event.clientY - box.top}px`);
 });
 
 // Campo de data: de hoje até 30 dias à frente
