@@ -79,7 +79,7 @@ barbearia-agendamento/
 - [x] Criar a API com banco de dados MySQL
 - [x] Login para o painel do barbeiro
 - [x] Publicar a API e o banco na nuvem
-- [ ] Testes automatizados das regras de horário
+- [x] Testes automatizados das regras de horário
 - [ ] Cadastro de serviços e barbeiros pelo painel
 - [ ] Envio de lembrete ao cliente
 
