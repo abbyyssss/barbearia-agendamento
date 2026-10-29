@@ -21,6 +21,7 @@ const API_URL = ['localhost', '127.0.0.1'].includes(location.hostname)
 
 const MAX_DAYS_AHEAD = 30; // até quantos dias à frente dá para agendar
 const TOKEN_KEY = 'navalha-token';
+const SERVICE_ICONS = ['✂️', '🧔', '💈', '✨']; // um ícone por serviço, na ordem da API
 
 
 /* ---------- 2. Estado da tela ---------- */
@@ -236,16 +237,18 @@ function renderChoices() {
     return;
   }
 
-  servicesBox.innerHTML = services.map((service) => `
+  servicesBox.innerHTML = services.map((service, index) => `
     <button class="opt" data-svc="${service.id}" aria-pressed="${state.service === service.id}">
+      <span class="ico">${SERVICE_ICONS[index % SERVICE_ICONS.length]}</span>
       <span class="pr">${formatBRL(service.preco)}</span>
       <b>${escapeHTML(service.nome)}</b>
       <small>${service.duracao_min} min</small>
     </button>
   `).join('');
 
-  barbersBox.innerHTML = barbers.map((barber) => `
+  barbersBox.innerHTML = barbers.map((barber, index) => `
     <button class="opt" data-pro="${barber.id}" aria-pressed="${state.barber === barber.id}">
+      <span class="ava c${index % 3}">${escapeHTML(barber.nome.charAt(0))}</span>
       <b>${escapeHTML(barber.nome)}</b>
       <small>${escapeHTML(barber.especialidade || '')}</small>
     </button>
@@ -592,8 +595,31 @@ $('#senha').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') doLogin();
 });
 
+// Efeito de entrada: os blocos aparecem suavemente quando entram na tela
+function setupReveal() {
+  document.documentElement.classList.add('js');
+  const items = document.querySelectorAll('.reveal');
+
+  if (!('IntersectionObserver' in window)) {
+    items.forEach((item) => item.classList.add('in'));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  items.forEach((item) => observer.observe(item));
+}
+
 // Início: mostra a tela e carrega serviços e barbeiros da API
 async function init() {
+  setupReveal();
   refresh();
 
   // Se a API demorar (plano gratuito "dormindo"), avisa em vez de parecer travado

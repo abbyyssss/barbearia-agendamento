@@ -6,7 +6,7 @@
 <title>Navalha &amp; Co. – Agendamento online</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,12 +24,35 @@
 <main class="wrap">
   <section id="agendar">
     <div class="hero">
-      <div>
-        <h1>Seu horário na cadeira, sem fila e sem ligação.</h1>
-        <p>Escolha o serviço, o barbeiro e o horário. A confirmação é na hora.</p>
+      <div class="hero-text">
+        <span class="sticker">Agendamento online</span>
+        <h1>Corte afiado. <em>Sem fila.</em></h1>
+        <p>Escolha o serviço, o barbeiro e o horário. A confirmação é na hora, sem ligar para ninguém.</p>
+        <div class="cta">
+          <a class="btn" href="#agende">Agendar agora</a>
+          <a class="btn ghost" href="#sobre">Conhecer a casa</a>
+        </div>
         <div class="info"><span><b>Seg a sex</b> 9h às 19h</span><span><b>Sábado</b> 9h às 16h</span><span><b>Domingo</b> fechado</span></div>
       </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="blob"></div>
+        <div class="pole-big"></div>
+        <svg class="scissors" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">
+          <g class="blade"><path d="M60 60 L60 8"/><path d="M60 60 L44 96"/><circle cx="38" cy="108" r="11"/></g>
+          <g transform="translate(120 0) scale(-1 1)"><g class="blade"><path d="M60 60 L60 8"/><path d="M60 60 L44 96"/><circle cx="38" cy="108" r="11"/></g></g>
+          <circle cx="60" cy="60" r="7" fill="#fff" stroke-width="4"/>
+        </svg>
+        <span class="badge b1">Sem fila</span>
+        <span class="badge b2">Em 1 minuto</span>
+      </div>
     </div>
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>CORTE ✦ BARBA ✦ NAVALHA ✦ TOALHA QUENTE ✦ ESTILO ✦ DEGRADÊ ✦ </span>
+        <span>CORTE ✦ BARBA ✦ NAVALHA ✦ TOALHA QUENTE ✦ ESTILO ✦ DEGRADÊ ✦ </span>
+      </div>
+    </div>
+    <h2 class="section-title" id="agende">Monte o seu horário</h2>
     <div class="layout">
       <div class="card" id="flow">
         <div class="step" id="s1"><h3><i>1</i>Escolha o serviço</h3><div class="grid" id="services"></div></div>
@@ -48,6 +71,28 @@
       </div>
       <aside class="side"><div class="card sum" id="summary"></div></aside>
     </div>
+
+    <section class="about reveal" id="sobre">
+      <div>
+        <h2 class="section-title">A casa do corte afiado</h2>
+        <p>A Navalha &amp; Co. mistura barbearia clássica com agendamento de hoje: toalha quente, navalha de verdade e um horário que você marca em um minuto, do celular, sem fila e sem ligação.</p>
+      </div>
+      <div class="about-stats">
+        <div class="big-stat c-yellow"><b>3</b><span>barbeiros na cadeira</span></div>
+        <div class="big-stat c-accent"><b>4</b><span>serviços na casa</span></div>
+        <div class="big-stat c-plain"><b>1 min</b><span>para agendar</span></div>
+      </div>
+    </section>
+
+    <section class="reveal">
+      <h2 class="section-title">Quem já passou por aqui</h2>
+      <div class="quotes">
+        <figure class="card quote"><blockquote>“Marquei pelo celular no ônibus e cheguei com a cadeira me esperando.”</blockquote><figcaption><b>Bruno A.</b> · corte e barba</figcaption></figure>
+        <figure class="card quote"><blockquote>“A toalha quente salva a semana. E ninguém me deixou esperando.”</blockquote><figcaption><b>Lucas P.</b> · barba</figcaption></figure>
+        <figure class="card quote"><blockquote>“Degradê no ponto, horário respeitado. Agora só marco por aqui.”</blockquote><figcaption><b>André S.</b> · corte clássico</figcaption></figure>
+      </div>
+      <p class="quotes-note">Depoimentos fictícios, escritos para o projeto.</p>
+    </section>
   </section>
 
   <section id="painel" hidden>
@@ -69,7 +114,14 @@
   </section>
 </main>
 
-<footer><div class="wrap">Navalha &amp; Co. é uma barbearia fictícia, criada para um projeto de portfólio. Os agendamentos ficam salvos em um banco de dados MySQL.</div></footer>
+<footer>
+  <div class="wrap foot">
+    <div><div class="brand">Navalha <span>&amp;</span> Co.</div><p>Barbearia fictícia criada para um projeto de portfólio.</p></div>
+    <div><h4>Horários</h4><p>Seg a sex · 9h às 19h<br>Sábado · 9h às 16h<br>Domingo · fechado</p></div>
+    <div><h4>Onde fica</h4><p>Rua das Tesouras, 123 · Centro<br>Endereço fictício</p></div>
+  </div>
+  <div class="wrap foot-note">Feito por Kauan Quaresma: site, API e banco de dados MySQL. <a href="https://github.com/abbyyssss/barbearia-agendamento">Código no GitHub</a></div>
+</footer>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="script.js"></script>
