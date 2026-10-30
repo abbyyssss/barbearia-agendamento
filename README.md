@@ -80,7 +80,7 @@ barbearia-agendamento/
 - [x] Login para o painel do barbeiro
 - [x] Publicar a API e o banco na nuvem
 - [x] Testes automatizados das regras de horário
-- [ ] Cadastro de serviços e barbeiros pelo painel
+- [x] Cadastro de serviços e barbeiros pelo painel
 - [x] Envio de lembrete ao cliente
 
 ## 👤 Autor
