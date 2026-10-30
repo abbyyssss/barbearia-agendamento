@@ -89,9 +89,52 @@
       <button class="btn" id="loginBtn">Entrar</button>
     </div>
     <div id="adminArea" hidden>
-      <div class="tools"><button class="btn ghost" id="logout">Sair</button></div>
-      <div class="stats" id="stats"></div>
-      <div class="card" id="list" style="margin-bottom:56px"></div>
+      <div class="tools">
+        <div class="subnav">
+          <button data-sub="agenda" aria-current="true">Agenda</button>
+          <button data-sub="servicos" aria-current="false">Serviços</button>
+          <button data-sub="barbeiros" aria-current="false">Barbeiros</button>
+        </div>
+        <button class="btn ghost" id="logout">Sair</button>
+      </div>
+
+      <div id="paneAgenda">
+        <div class="stats" id="stats"></div>
+        <div class="card" id="list" style="margin-bottom:56px"></div>
+      </div>
+
+      <div id="paneServicos" hidden>
+        <div class="card form-card">
+          <h3 id="svcFormTitle">Novo serviço</h3>
+          <div class="fields">
+            <div><label for="svcNome">Nome</label><input id="svcNome" maxlength="80" placeholder="Ex.: Hidratação capilar"></div>
+            <div><label for="svcMin">Duração (minutos)</label><input id="svcMin" inputmode="numeric" placeholder="45"></div>
+            <div><label for="svcPreco">Preço (R$)</label><input id="svcPreco" inputmode="decimal" placeholder="55,00"></div>
+          </div>
+          <p class="err" id="svcErr"></p>
+          <div class="form-actions">
+            <button class="btn" id="svcSave">Cadastrar serviço</button>
+            <button class="btn ghost" id="svcCancel" hidden>Cancelar edição</button>
+          </div>
+        </div>
+        <div class="card" id="svcList" style="margin-bottom:56px"></div>
+      </div>
+
+      <div id="paneBarbeiros" hidden>
+        <div class="card form-card">
+          <h3 id="brbFormTitle">Novo barbeiro</h3>
+          <div class="fields">
+            <div><label for="brbNome">Nome</label><input id="brbNome" maxlength="60" placeholder="Ex.: Caio"></div>
+            <div><label for="brbEsp">Especialidade (opcional)</label><input id="brbEsp" maxlength="80" placeholder="Ex.: Barba e navalha"></div>
+          </div>
+          <p class="err" id="brbErr"></p>
+          <div class="form-actions">
+            <button class="btn" id="brbSave">Cadastrar barbeiro</button>
+            <button class="btn ghost" id="brbCancel" hidden>Cancelar edição</button>
+          </div>
+        </div>
+        <div class="card" id="brbList" style="margin-bottom:56px"></div>
+      </div>
     </div>
   </section>
 </main>

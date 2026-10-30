@@ -8,7 +8,8 @@
    4. Comunicação com a API
    5. Renderização da tela
    6. Ações do usuário
-   7. Eventos e inicialização
+   7. Cadastros do painel (serviços e barbeiros)
+   8. Eventos e inicialização
    ========================================================================== */
 
 
@@ -548,7 +549,7 @@ async function doLogin() {
 
 function logout() {
   setToken(null);
-  renderPanel();
+  showSub('agenda');
 }
 
 // O cancelamento pede um segundo clique para evitar toques acidentais
@@ -583,7 +584,212 @@ function showTab(name) {
 }
 
 
-/* ---------- 7. Eventos e inicialização ---------- */
+/* ---------- 7. Cadastros do painel (serviços e barbeiros) ---------- */
+
+const admin = {
+  services: [],
+  barbers: [],
+  editing: { servico: null, barbeiro: null } // id em edição; null quando é um cadastro novo
+};
+
+// Campos e textos de cada formulário
+const FORMS = {
+  servico: {
+    title: '#svcFormTitle', save: '#svcSave', cancel: '#svcCancel', error: '#svcErr',
+    fields: ['#svcNome', '#svcMin', '#svcPreco'],
+    newTitle: 'Novo serviço', editTitle: 'Editar serviço', newButton: 'Cadastrar serviço',
+    path: '/admin/servicos'
+  },
+  barbeiro: {
+    title: '#brbFormTitle', save: '#brbSave', cancel: '#brbCancel', error: '#brbErr',
+    fields: ['#brbNome', '#brbEsp'],
+    newTitle: 'Novo barbeiro', editTitle: 'Editar barbeiro', newButton: 'Cadastrar barbeiro',
+    path: '/admin/barbeiros'
+  }
+};
+
+// Sessão expirada: volta para a tela de login
+function handleAuthError(error) {
+  if (error.status !== 401 && error.status !== 403) return false;
+  setToken(null);
+  showToast('Sessão expirada. Entre novamente.');
+  renderPanel();
+  return true;
+}
+
+async function loadAdminLists() {
+  try {
+    [admin.services, admin.barbers] = await Promise.all([
+      api('/admin/servicos', { auth: true }),
+      api('/admin/barbeiros', { auth: true })
+    ]);
+    renderAdminLists();
+  } catch (error) {
+    if (handleAuthError(error)) return;
+    const message = `<div class="empty">${escapeHTML(error.message)}</div>`;
+    $('#svcList').innerHTML = message;
+    $('#brbList').innerHTML = message;
+  }
+}
+
+function adminRow(kind, item, detail) {
+  return `
+    <div class="appt ${item.ativo ? '' : 'off'}">
+      <div class="who">
+        <b>${escapeHTML(item.nome)}</b>${item.ativo ? '' : '<span class="tag">Inativo</span>'}
+        <small>${detail}</small>
+      </div>
+      <button class="cancel remind" data-edit="${kind}:${item.id}">Editar</button>
+      <button class="cancel" data-toggle="${kind}:${item.id}">${item.ativo ? 'Desativar' : 'Ativar'}</button>
+    </div>`;
+}
+
+function renderAdminLists() {
+  $('#svcList').innerHTML = admin.services.length
+    ? admin.services.map((item) => adminRow('servico', item, `${item.duracao_min} min · ${formatBRL(item.preco)}`)).join('')
+    : '<div class="empty">Nenhum serviço cadastrado.</div>';
+
+  $('#brbList').innerHTML = admin.barbers.length
+    ? admin.barbers.map((item) => adminRow('barbeiro', item, escapeHTML(item.especialidade || 'Sem especialidade'))).join('')
+    : '<div class="empty">Nenhum barbeiro cadastrado.</div>';
+}
+
+function resetForm(kind) {
+  const form = FORMS[kind];
+  admin.editing[kind] = null;
+  form.fields.forEach((selector) => { $(selector).value = ''; });
+  $(form.error).textContent = '';
+  $(form.title).textContent = form.newTitle;
+  $(form.save).textContent = form.newButton;
+  $(form.cancel).hidden = true;
+}
+
+// Preenche o formulário com o item escolhido e troca o botão para "Salvar alterações"
+function startEdit(kind, id) {
+  const form = FORMS[kind];
+  const list = kind === 'servico' ? admin.services : admin.barbers;
+  const item = list.find((entry) => entry.id === id);
+  if (!item) return;
+
+  admin.editing[kind] = id;
+  $(form.fields[0]).value = item.nome;
+  if (kind === 'servico') {
+    $('#svcMin').value = item.duracao_min;
+    $('#svcPreco').value = item.preco.toFixed(2).replace('.', ',');
+  } else {
+    $('#brbEsp').value = item.especialidade || '';
+  }
+  $(form.error).textContent = '';
+  $(form.title).textContent = form.editTitle;
+  $(form.save).textContent = 'Salvar alterações';
+  $(form.cancel).hidden = false;
+  $(form.title).scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Depois de qualquer mudança: atualiza as listas do painel e o formulário público de agendamento
+async function afterCatalogChange() {
+  await loadAdminLists();
+  await loadCatalog();
+
+  // Se o que estava escolhido no agendamento deixou de existir, limpa a escolha
+  if (state.service && !getService(state.service)) {
+    state.service = null;
+    state.time = null;
+    state.slots = null;
+  }
+  if (state.barber && !barbers.some((item) => item.id === state.barber)) {
+    state.barber = null;
+    state.time = null;
+    state.slots = null;
+  }
+  refresh();
+}
+
+async function submitForm(kind, body) {
+  const form = FORMS[kind];
+  const id = admin.editing[kind];
+  const button = $(form.save);
+  const label = kind === 'servico' ? 'Serviço' : 'Barbeiro';
+
+  button.disabled = true;
+  try {
+    await api(id ? `${form.path}/${id}` : form.path, {
+      method: id ? 'PATCH' : 'POST',
+      body,
+      auth: true
+    });
+    showToast(id ? `${label} atualizado` : `${label} cadastrado`);
+    resetForm(kind);
+    await afterCatalogChange();
+  } catch (error) {
+    if (!handleAuthError(error)) $(form.error).textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function saveService() {
+  const errorBox = $('#svcErr');
+  const name = $('#svcNome').value.trim();
+  const minutes = Number($('#svcMin').value);
+  const price = Number($('#svcPreco').value.replace(',', '.'));
+
+  if (name.length < 2) {
+    errorBox.textContent = 'Informe o nome do serviço.';
+  } else if (!Number.isInteger(minutes) || minutes < 15 || minutes > 240 || minutes % 5 !== 0) {
+    errorBox.textContent = 'A duração deve ficar entre 15 e 240 minutos, em múltiplos de 5.';
+  } else if (!(price > 0) || price > 10000) {
+    errorBox.textContent = 'Informe um preço maior que zero.';
+  } else {
+    errorBox.textContent = '';
+    submitForm('servico', { nome: name, duracao_min: minutes, preco: price });
+  }
+}
+
+function saveBarber() {
+  const errorBox = $('#brbErr');
+  const name = $('#brbNome').value.trim();
+
+  if (name.length < 2) {
+    errorBox.textContent = 'Informe o nome do barbeiro.';
+    return;
+  }
+  errorBox.textContent = '';
+  submitForm('barbeiro', { nome: name, especialidade: $('#brbEsp').value.trim() });
+}
+
+// Ativa ou desativa (nada é apagado, para não perder o histórico de agendamentos)
+async function toggleActive(kind, id) {
+  const form = FORMS[kind];
+  const list = kind === 'servico' ? admin.services : admin.barbers;
+  const item = list.find((entry) => entry.id === id);
+  if (!item) return;
+
+  try {
+    await api(`${form.path}/${id}`, { method: 'PATCH', body: { ativo: !item.ativo }, auth: true });
+    showToast(item.ativo ? 'Desativado: some do site' : 'Ativado: voltou ao site');
+    if (admin.editing[kind] === id) resetForm(kind);
+    await afterCatalogChange();
+  } catch (error) {
+    if (!handleAuthError(error)) showToast(error.message);
+  }
+}
+
+// Alterna entre "Agenda", "Serviços" e "Barbeiros" dentro do painel
+function showSub(name) {
+  document.querySelectorAll('.subnav button').forEach((button) => {
+    button.setAttribute('aria-current', String(button.dataset.sub === name));
+  });
+  $('#paneAgenda').hidden = name !== 'agenda';
+  $('#paneServicos').hidden = name !== 'servicos';
+  $('#paneBarbeiros').hidden = name !== 'barbeiros';
+
+  if (name === 'agenda') renderPanel();
+  else loadAdminLists();
+}
+
+
+/* ---------- 8. Eventos e inicialização ---------- */
 
 // Um único "ouvinte" de clique trata todos os botões da página
 document.addEventListener('click', (event) => {
@@ -615,6 +821,22 @@ document.addEventListener('click', (event) => {
     doLogin();
   } else if (button.id === 'logout') {
     logout();
+  } else if (button.dataset.sub) {
+    showSub(button.dataset.sub);
+  } else if (button.id === 'svcSave') {
+    saveService();
+  } else if (button.id === 'svcCancel') {
+    resetForm('servico');
+  } else if (button.id === 'brbSave') {
+    saveBarber();
+  } else if (button.id === 'brbCancel') {
+    resetForm('barbeiro');
+  } else if (button.dataset.edit) {
+    const [kind, id] = button.dataset.edit.split(':');
+    startEdit(kind, Number(id));
+  } else if (button.dataset.toggle) {
+    const [kind, id] = button.dataset.toggle.split(':');
+    toggleActive(kind, Number(id));
   } else if (button.dataset.cancel) {
     cancelAppointment(button);
   }
